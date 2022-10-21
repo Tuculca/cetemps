@@ -1,0 +1,69 @@
+#!/bin/csh
+#cat >! Z_corr1.f << FINE
+
+set IOSTESSO = `basename $0`
+set VERSION = '1.0'
+#set PGFDIR = '/usr/local/pgi/linux86/6.2/bin'
+#set PGFDIR = '/usr/local/pgi/linux86-64/7.0-2/bin'
+set PGFDIR = '/opt/intel/fce/10.1.018/bin'
+#
+#------------------------------------------------------- Fortran Code ---------
+cat >! ${IOSTESSO}.f << FINEF77
+
+
+	program sweepping
+	parameter(ni=4,na=225,ndata=1003)
+	real mat(ni,na,ndata),vmi(na,ndata)
+	call wrf_1180_new_MM ('$1','$2',$3,$4,$5,$6,$7)
+        
+	stop
+	end
+
+FINEF77
+set MVLIB = '-L/home/dvd/errico/radar/lib -lmvgraf -lncaruti -lmv'
+set NCARLIB  = '-L/usr/local/ncarg/lib -lncarg -lncarg_gks -lncarg_c -L/usr/X11R6/lib -lX11'
+if ( `uname -a | grep alpha | wc -l` > 0 ) then
+   set OPTION = '-convert big_endian -extend_source'
+else if ( `uname -a | grep SunOS | wc -l` > 0 ) then
+   set OPTION = '-e'
+else if ( `uname -a | grep IRIX64 | wc -l` > 0 ) then
+   set OPTION = '-extend_source'
+else if ( `uname -a | grep Linux | wc -l` > 0 ) then
+   set OPTION = '-byteswapio -fast'
+else
+   echo "${IOSTESSO}: Unknow HW/SW Platform. Exiting."
+   goto CANCELLA
+endif
+
+if ( -f $IOSTESSO.exe ) /bin/rm $IOSTESSO.exe
+
+echo " Compiling $IOSTESSO fortran code"
+echo "  ${OPTION} options will be used on this platform... "
+#pgf77 $OPTION -o $IOSTESSO.exe $IOSTESSO.f  sweep_vmi.f matr3d.f $MVLIB $NCARLIB >&! fortran.log
+#pgf77 $OPTION -o $IOSTESSO.exe $IOSTESSO.f  sweep_vmi.f matr3d.f $MVLIB>&! fortran.log
+
+# funziona anche con f77
+#f77 -o $IOSTESSO.exe $IOSTESSO.f  wrf_1180_new.f >&! fortran.log
+/opt/intel/bin/ifort -o $IOSTESSO.exe $IOSTESSO.f  wrf_1180_new_MM.f >&! fortran.log
+#$PGFDIR/pgf77 -o $IOSTESSO.exe $IOSTESSO.f  sweep_vmi.f matr3d.f >&! fortran.log
+
+if ( ! -x $IOSTESSO.exe ) then
+      echo " ${IOSTESSO}: cannot run $IOSTESSO.exe "
+      echo "    This is the log for pgf77 $OPTION $MVLIB $NCARLIB"
+      echo "******************************************************************"
+      cat fortran.log
+      echo "******************************************************************"
+      goto CANCELLA
+endif
+
+
+echo " Running $IOSTESSO.exe"
+./$IOSTESSO.exe
+#/bin/cp -f tmpfile000.gif qwertygi > qaz
+CANCELLA:
+echo " Removing all tmp files."
+foreach FILE ( $IOSTESSO.exe $IOSTESSO.f gmeta core $IOSTESSO.log fortran.log \ gifmerge.log )
+  rm -f $FILE
+end
+
+

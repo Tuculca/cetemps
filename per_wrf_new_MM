@@ -1,0 +1,149 @@
+#!/bin/csh
+
+set RADAR_DIR = '/mnt/disk2/afalcione/ass_radar/RADAR_DATA_MM'
+cd $RADAR_DIR
+echo 'Current Directory:' 
+/bin/pwd
+echo ' '
+/bin/rm -f *.dat_MM *.txt 
+
+
+set ASCIIDIR = $RADAR_DIR
+set ASCIIDIR_VEL = $RADAR_DIR
+set MIADIR = $RADAR_DIR
+
+#set PGFDIR = '/usr/local/pgi/linux86-64/7.0-2/bin'
+#setenv LD_LIBRARY_PATH '/home/dvd/errico/radar/lib:/usr/local/pgi/linux86/6.2/lib'
+#setenv LD_LIBRARY_PATH '/home/dvd/errico/radar/lib:/usr/local/pgi/linux86-64/7.0-2/bin'
+
+#setenv LD_ASSUME_KERNEL '2.4.1';
+#setenv LM_LICENSE_FILE '/usr/local/pgi/license.dat'
+#------------------------------------------------------------------------------
+#                 Do not modify beyond this line!!
+#------------------------------------------------------------------------------
+#
+#   da aggiungere con crontab -e
+
+#
+# 0 * * * * cd /veditu ; radar2web >> radar2web.log 2>> radar2web.err &
+#
+# vuole in ingresso un .vol
+
+unlimit
+
+#set ULTIMO = `ls -1 $BUFRDATA/* | tail -1 `
+
+##if (! -e $BUFRDATA) then
+##echo "directory BUFRDATA vuota...ok....."
+##else
+##echo "directory BUFRDATA non vuota...rimuovo i files...."
+##endif
+
+###set CONTROLLA = `ls -1 $CONDIR/0*.vol | tail -1 `
+
+set FILES =  `ls $ASCIIDIR`
+
+foreach FILE ( $FILES )
+
+####set PAR = 'CZ'
+####set ZERO = 'O'
+
+set MIN =  `basename $ASCIIDIR/$FILE| cut -b 11-12`
+set ORA =  `basename $ASCIIDIR/$FILE| cut -b 9-10`
+set GIO =  `basename $ASCIIDIR/$FILE| cut -b 7-8`
+set MES =  `basename $ASCIIDIR/$FILE| cut -b 5-6`
+set ANNO =  `basename $ASCIIDIR/$FILE| cut -b 3-4`
+set DATA =  `basename $ASCIIDIR/$FILE| cut -b 1-12` 
+
+set CAR1 = '20'
+set ANN = $CAR1$ANNO
+
+echo "       "
+echo " processo un nuovo volume............"
+echo "       "
+
+echo " ANNO:$ANN"
+echo " MESE:$MES"
+echo " GIORNO:$GIO"
+echo " ORA:$ORA UTC "
+echo " MINUTO:$MIN"
+
+echo "       "
+#set CAR2 = 'UTC_vpol_zh_v.zip'
+#set CAR3 = 'UTC_vpol_v_msus.txt.zip'
+#unzip *.zip  
+#set CAR2 = 'UTC_vpol_zh_dbz.zip'
+unzip *.zip
+#set CAR3 = 'UTC_vpol_v_msus.zip'
+#unzip *_msus.zip
+#unzip *_dbz.zip
+echo "       "
+echo "       "
+set CAR4 = 'UTC_vpol_zh_dbz.txt'
+set CAR5 = 'UTC_vpol_v_msus.txt'
+
+set NOME_ASCII_DBZ = $DATA$CAR4
+set NOME_ASCII_VEL = $DATA$CAR5
+#echo $NOME_ASCII_DBZ
+#echo $NOME_ASCII_VEL
+
+/bin/cp -f  $ASCIIDIR/$NOME_ASCII_DBZ  $MIADIR/DBZ.txt 
+#/bin/gunzip -f DBZ.txt.gz
+
+#if (($MIN == '00') || ($MIN == '30')) then
+
+/bin/cp -f  $ASCIIDIR_VEL/$NOME_ASCII_VEL $MIADIR/VEL.txt
+#/bin/gunzip -f VEL.txt.gz
+
+echo " Ho riflettivita' e vento"
+ echo " processing DBZ $DATA$CAR4"
+echo "       "
+
+echo "       "
+ echo " processing VEL $DATA$CAR5"
+echo "       "
+./Zsweep_wrf_1180_linux_new_MM DBZ.txt VEL.txt $MIN $ORA $GIO $MES $ANN 
+echo "       "
+
+echo "       "
+
+echo "       "
+
+echo ">>>>>>>>>>>Ho creato il file assimilazione WRF da volume M.MIDIA con vento<<<<<<<<<<<"
+echo "       "
+
+echo "       "
+
+#/bin/rm -f `ls -t1 *.CZO | head -1`
+#/bin/rm -f `ls -t1 *.VRO | head -1`
+exit
+#endif
+
+###set NOME =`basename $VOLDIR/$FILE| cut -b 1-6`
+###set ORA =`basename $VOLDIR/$FILE| cut -b 7-10`
+
+if (($MIN == '15') || ($MIN == '45')) then
+
+echo "  Ho solo riflettivita'   "
+ echo " processing DBZ $DATA$CAR2"
+echo "       "
+
+echo "       "
+
+./Zsweep_wrf_linux_new_MM  DBZ.txt $MIN $ORA $GIO $MES $ANN
+
+echo "       "
+
+echo "       "
+
+echo ">>>>>>>>>>>Ho creato il file assimilazione WRF da volume M.MIDIA senza vento<<<<<<<<<<<"
+echo "       "
+
+echo "       "
+
+#/bin/rm -f `ls -t1 *.CZO | head -1`
+endif 
+
+end
+
+#
